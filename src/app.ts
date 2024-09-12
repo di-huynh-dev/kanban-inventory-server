@@ -1,13 +1,26 @@
-const express = require("express");
+import express from 'express'
+import dotenv from 'dotenv'
+import routes from './routes/v1'
+import { handleErrorMiddleware, notFoundMiddleware } from './middlewares/handleError.middleware'
+const cookieParser = require('cookie-parser')
 
-require("dotenv").config();
-const app = express();
+const app = express()
 
+dotenv.config()
 // middlewares
+app.use(express.json())
+app.use(cookieParser())
 
 //init db
-require("./config/mongodb");
+require('./config/mongodb')
 
 // routes
+app.use('/v1', routes)
 
-module.exports = app;
+// Handle 404 Not Found errors
+app.use(notFoundMiddleware)
+
+// Handle all other errors
+app.use(handleErrorMiddleware)
+
+module.exports = app

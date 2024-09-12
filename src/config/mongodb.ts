@@ -1,6 +1,7 @@
 "use strict";
 
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+
 const {
   db: { uri },
 } = require("../config/environment");
