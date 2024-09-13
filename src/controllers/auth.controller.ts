@@ -12,6 +12,15 @@ class AuthController {
     }
   }
 
+  loginWithGoogle = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { name, email } = req.body
+      new SuccessResponse('Login successfully!', 200, await authService.loginWithGoogle(name, email, res)).send(res)
+    } catch (error) {
+      next(error)
+    }
+  }
+
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { name, email, password } = req.body

@@ -1,5 +1,6 @@
 import { BadRequestError, UnAuthorizedError } from '../core/error.response'
 import { getInfoData } from '../utils'
+import { generateRandomText } from '../utils/generateRandomText'
 import { generateAccessToken, generateRefreshToken } from '../utils/generateToken'
 import { verifyRefreshToken } from '../utils/verifyToken'
 
@@ -17,6 +18,7 @@ class AuthService {
         throw new UnAuthorizedError('Email/password không hợp lệ!')
       } else {
         const payload = {
+          _id: user._id,
           email: user.email,
           name: user.name,
         }
@@ -65,6 +67,69 @@ class AuthService {
     })
   }
 
+  static async loginWithGoogle(name: string, email: string, res: any) {
+    //Check existed email
+    const user = await userModel.findOne({ email })
+
+    if (user) {
+      const payload = {
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+      }
+      const accessToken = generateAccessToken(payload)
+      const refreshToken = generateRefreshToken(payload)
+
+      // Lưu refreshToken vào database
+      user.refreshToken = refreshToken
+      await user.save()
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        sameSite: 'Strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      })
+
+      return {
+        ...payload,
+        accessToken,
+        refreshToken,
+      }
+    } else {
+      //Generate random password
+      const password = generateRandomText()
+
+      //Generate hash password
+      const hashedPassword = bcrypt.hashSync(password, saltRounds)
+
+      //Create new user
+      const newUser = await userModel.create({ name, email, password: hashedPassword })
+
+      const payload = {
+        _id: newUser._id,
+        email: newUser.email,
+        name: newUser.name,
+      }
+      const accessToken = generateAccessToken(payload)
+      const refreshToken = generateRefreshToken(payload)
+
+      // Lưu refreshToken vào database
+      newUser.refreshToken = refreshToken
+      await newUser.save()
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        sameSite: 'Strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      })
+
+      return {
+        ...payload,
+        accessToken,
+        refreshToken,
+      }
+    }
+  }
   static async refreshToken(req: any) {
     const { refreshToken } = req.cookies
     if (!refreshToken) {
